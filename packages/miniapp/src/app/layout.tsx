@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Inter, Source_Code_Pro } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { SafeArea } from "@coinbase/onchainkit/minikit";
 import { minikitConfig } from "../../minikit.config";
 import { Providers } from "./providers";
@@ -25,14 +26,51 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const inter = Inter({
-  variable: "--font-inter",
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
 });
 
-const sourceCodePro = Source_Code_Pro({
-  variable: "--font-source-code-pro",
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const clashDisplay = localFont({
+  src: [
+    {
+      path: "../../public/fonts/WEB/fonts/ClashDisplay-Extralight.woff2",
+      weight: "200",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/WEB/fonts/ClashDisplay-Light.woff2",
+      weight: "300",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/WEB/fonts/ClashDisplay-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/WEB/fonts/ClashDisplay-Medium.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/WEB/fonts/ClashDisplay-Semibold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/WEB/fonts/ClashDisplay-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-clash",
+  display: "swap",
 });
 
 export default function RootLayout({
@@ -43,7 +81,9 @@ export default function RootLayout({
   return (
     <Providers>
       <html lang="en">
-        <body className={`${inter.variable} ${sourceCodePro.variable}`}>
+        <body
+          className={`${geist.variable} ${geistMono.variable} ${clashDisplay.variable}`}
+        >
           <SafeArea>{children}</SafeArea>
         </body>
       </html>

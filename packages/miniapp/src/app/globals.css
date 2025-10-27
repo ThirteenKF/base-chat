@@ -2,7 +2,7 @@
 
 @theme {
   --color-fhenix-cyan: #0ad9dc;
-  --color-fhenix-dark: #07080a;
+  --color-fhenix-dark: #011623;
 }
 
 @layer base {
@@ -13,8 +13,8 @@
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --background: #0a0a0a;
-      --foreground: #ededed;
+      --background: #011623;
+      --foreground: #ffffff;
     }
   }
 
@@ -27,7 +27,7 @@
   body {
     color: var(--foreground);
     background: var(--background);
-    font-family: var(--font-inter), sans-serif;
+    font-family: var(--font-geist), sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -36,7 +36,7 @@
     background-color: rgba(0, 0, 0, 0.05);
     border-radius: 6px;
     border: 1px solid rgba(0, 0, 0, 0.1);
-    font-family: var(--font-source-code-pro), monospace;
+    font-family: var(--font-geist-mono), monospace;
     font-size: 0.875rem;
     padding: 0.25rem 0.5rem calc(0.25rem + 2px);
   }
