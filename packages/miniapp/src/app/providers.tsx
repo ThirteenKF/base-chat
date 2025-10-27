@@ -16,6 +16,10 @@ export function Providers({ children }: { children: ReactNode }) {
         wallet: {
           display: "modal",
           preference: "all",
+          supportedWallets: {
+            rabby: true,
+            trust: true,
+          },
         },
       }}
       miniKit={{
