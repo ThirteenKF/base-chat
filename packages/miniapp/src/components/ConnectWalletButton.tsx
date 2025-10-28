@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   Name,
   Identity,
@@ -13,8 +14,20 @@ import {
   WalletDropdown,
   WalletDropdownDisconnect,
 } from "@coinbase/onchainkit/wallet";
+import { useAccount, useSwitchChain } from "wagmi";
+import { baseSepolia } from "wagmi/chains";
 
 export function ConnectWalletButton() {
+  const { isConnected, chainId } = useAccount();
+  const { switchChain } = useSwitchChain();
+
+  // Automatically switch to Base Sepolia if connected to wrong chain
+  useEffect(() => {
+    if (isConnected && chainId !== baseSepolia.id) {
+      switchChain?.({ chainId: baseSepolia.id });
+    }
+  }, [isConnected, chainId, switchChain]);
+
   return (
     <Wallet>
       <ConnectWallet />

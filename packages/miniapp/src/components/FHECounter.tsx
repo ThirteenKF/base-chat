@@ -2,11 +2,17 @@
 
 import { useCallback, useState, useEffect } from "react";
 import { cofhejs, Encryptable, FheTypes } from "cofhejs/web";
-import { useReadContract, useWriteContract } from "wagmi";
+import { useReadContract, useAccount } from "wagmi";
+import type { ContractFunctionParameters } from "viem";
+import {
+  Transaction,
+  TransactionButton,
+} from "@coinbase/onchainkit/transaction";
+import type { LifecycleStatus } from "@coinbase/onchainkit/transaction";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "../contracts/deployedContracts";
 
-// Simple SVG Icons
-const LockClosedIcon = ({ className }: { className?: string }) => (
+// Info icon SVG
+const InfoIcon = ({ className }: { className?: string }) => (
   <svg
     className={className}
     fill="none"
@@ -17,155 +23,100 @@ const LockClosedIcon = ({ className }: { className?: string }) => (
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth={2}
-      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-    />
-  </svg>
-);
-
-const LockOpenIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
+      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
     />
   </svg>
 );
 
 /**
- * useDecryptValue Hook
- *
- * A hook to manage the decryption of encrypted values from the blockchain.
+ * EncryptedValue Component - Displays and decrypts encrypted values with toggle
  */
-function useDecryptValue<T extends FheTypes>(
-  fheType: T,
-  ctHash: bigint | null | undefined
-) {
-  const [result, setResult] = useState<{
-    state: "no-data" | "encrypted" | "pending" | "success" | "error";
-    value?: string;
-    error?: string;
-  }>({ state: ctHash ? "encrypted" : "no-data" });
-
-  useEffect(() => {
-    if (ctHash) {
-      setResult({ state: "encrypted" });
-    } else {
-      setResult({ state: "no-data" });
-    }
-  }, [ctHash]);
-
-  const onDecrypt = useCallback(async () => {
-    if (!ctHash) return;
-
-    setResult({ state: "pending" });
-    try {
-      const decryptedValue = await cofhejs.unseal(ctHash, fheType);
-      console.log({ decryptedValue });
-      setResult({ state: "success", value: decryptedValue.data!.toString() });
-    } catch (error) {
-      console.error("Decryption error:", error);
-      setResult({
-        state: "error",
-        error: error instanceof Error ? error.message : "Failed to decrypt",
-      });
-    }
-  }, [ctHash, fheType]);
-  console.log(result);
-
-  return { onDecrypt, result };
-}
-
-/**
- * EncryptedValue Component
- *
- * Displays an encrypted value with decrypt functionality.
- * Note: Permit handling is done by parent component.
- */
-interface EncryptedValueProps<T extends FheTypes> {
-  fheType: T;
-  ctHash: bigint | null | undefined;
-  label: string;
-}
-
 const EncryptedValue = <T extends FheTypes>({
-  label,
   fheType,
   ctHash,
-}: EncryptedValueProps<T>) => {
-  const { onDecrypt, result } = useDecryptValue(fheType, ctHash);
+}: {
+  fheType: T;
+  ctHash: bigint | null | undefined;
+}) => {
+  const [value, setValue] = useState<string | null>(null);
+  const [isDecrypting, setIsDecrypting] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const { address } = useAccount();
+
+  // Reset when ctHash changes (new counter value)
+  useEffect(() => {
+    setValue(null);
+    setIsVisible(false);
+  }, [ctHash]);
+
+  const handleToggle = async () => {
+    if (!ctHash || isDecrypting) return;
+
+    // If we have a value, just toggle visibility
+    if (value) {
+      setIsVisible(!isVisible);
+      return;
+    }
+
+    // Otherwise, decrypt first
+    setIsDecrypting(true);
+    try {
+      console.log(address);
+      const decryptedValue = await cofhejs.unseal(ctHash, fheType);
+      setValue(decryptedValue.data!.toString());
+      setIsVisible(true);
+    } catch (error) {
+      console.error("Decryption error:", error);
+    } finally {
+      setIsDecrypting(false);
+    }
+  };
+
+  const renderContent = () => {
+    if (!ctHash) return "No data";
+    if (isDecrypting) return "decrypting...";
+    if (value && isVisible) return value;
+    return "encryp*ed";
+  };
+
+  const showHint = !value && !isDecrypting && ctHash;
+  const content = renderContent();
 
   return (
-    <div
-      className="flex flex-row items-center justify-start p-1 pl-4 gap-2 flex-1 bg-gray-800/50 min-h-12"
-      style={{ borderRadius: "0" }}
+    <button
+      onClick={handleToggle}
+      disabled={!ctHash || isDecrypting}
+      className="flex flex-1 px-6 py-3 items-center justify-center transition-all hover:scale-105 hover:opacity-90 disabled:hover:scale-100 disabled:hover:opacity-70 cursor-pointer"
+      style={{
+        borderRadius: "0",
+        background:
+          "linear-gradient(135deg, rgba(10, 217, 220, 0.1) 0%, rgba(10, 217, 220, 0.05) 100%)",
+        border: "2px solid rgba(10, 217, 220, 0.3)",
+      }}
     >
-      <span className="text-xs font-semibold text-white font-(family-name:--font-clash)">
-        {label}
-      </span>
-      {result.state === "no-data" && (
-        <span className="text-xs font-semibold flex-1 italic text-gray-400 font-(family-name:--font-clash)">
-          No data
-        </span>
-      )}
-      {result.state === "encrypted" && (
-        <button
-          className="btn btn-sm flex-1 px-4 py-2 font-semibold uppercase tracking-widest transition-all font-(family-name:--font-clash) hover:opacity-80"
-          style={{
-            backgroundColor: "#FFFFFF",
-            color: "#011623",
-            border: "none",
-            borderRadius: "0",
-          }}
-          onClick={onDecrypt}
-        >
-          <LockClosedIcon className="w-5 h-5" aria-hidden="true" />
-          <span className="flex flex-1 items-center justify-center">
-            <span>Encrypted</span>
+      <div className="flex flex-col items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-3">
+          {isDecrypting && (
+            <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          )}
+          <span className="text-2xl font-bold text-white font-(family-name:--font-clash) tracking-tight uppercase">
+            {content.split("").map((char, idx) => (
+              <span
+                key={idx}
+                className={char === "*" ? "text-fhenix-cyan" : ""}
+              >
+                {char}
+              </span>
+            ))}
           </span>
-        </button>
-      )}
-      {result.state === "pending" && (
-        <button
-          className="btn btn-sm flex-1 px-4 py-2 font-semibold uppercase tracking-widest cursor-not-allowed font-(family-name:--font-clash) opacity-50"
-          style={{
-            backgroundColor: "#FFFFFF",
-            color: "#011623",
-            border: "none",
-            borderRadius: "0",
-          }}
-          disabled
-        >
-          <span className="inline-block w-4 h-4 border-2 border-fhenix-dark border-t-transparent rounded-full animate-spin"></span>
-          Decrypting
-        </button>
-      )}
-
-      {result.state === "success" && (
-        <div
-          className="flex flex-1 px-4 items-center justify-center gap-2 h-10 bg-green-500/10 border-green-500 border-2 border-solid"
-          style={{ borderRadius: "0" }}
-        >
-          <LockOpenIcon className="w-5 h-5 text-green-500" aria-hidden="true" />
-          <div className="flex flex-1 items-center justify-center">
-            <span className="text-white font-(family-name:--font-clash)">
-              {result.value}
-            </span>
-          </div>
         </div>
-      )}
-      {result.state === "error" && (
-        <span className="text-xs text-yellow-500 font-semibold flex-1 italic font-(family-name:--font-clash)">
-          {result.error}
-        </span>
-      )}
-    </div>
+        {showHint && (
+          <span className="text-xs text-fhenix-cyan font-(family-name:--font-clash) opacity-70">
+            Click to decrypt
+          </span>
+        )}
+      </div>
+    </button>
   );
 };
 
@@ -183,6 +134,24 @@ const EncryptedValue = <T extends FheTypes>({
  */
 
 export const FHECounter = () => {
+  const [resetKey, setResetKey] = useState(0);
+
+  // Get the refetch function to manually refresh the counter after transactions
+  const { data: count, refetch } = useReadContract({
+    address: CONTRACT_ADDRESS as `0x${string}`,
+    abi: CONTRACT_ABI,
+    functionName: "count",
+  });
+
+  const handleTransactionSuccess = useCallback(async () => {
+    // Wait a bit for the blockchain to update
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Refetch the counter value
+    await refetch();
+    // Force reset of the encrypted value display
+    setResetKey((prev) => prev + 1);
+  }, [refetch]);
+
   return (
     <div
       className="flex flex-col px-8 py-8 items-center gap-4"
@@ -192,12 +161,15 @@ export const FHECounter = () => {
         FHE Counter
       </h2>
 
-      <SetCounterRow />
+      <SetCounterRow onSuccess={handleTransactionSuccess} />
       <div className="flex flex-row w-full gap-3">
-        <IncrementButton />
-        <DecrementButton />
+        <IncrementButton onSuccess={handleTransactionSuccess} />
+        <DecrementButton onSuccess={handleTransactionSuccess} />
       </div>
-      <EncryptedCounterDisplay />
+      <EncryptedCounterDisplay
+        count={count as bigint | undefined}
+        resetKey={resetKey}
+      />
     </div>
   );
 };
@@ -213,70 +185,85 @@ export const FHECounter = () => {
  * This ensures the actual value is never exposed on the blockchain,
  * maintaining privacy while still allowing computations.
  */
-const SetCounterRow = () => {
+const SetCounterRow = ({ onSuccess }: { onSuccess: () => void }) => {
   const [input, setInput] = useState<string>("");
-  const [isEncryptingInput, setIsEncryptingInput] = useState<boolean>(false);
-  const { writeContract, isPending } = useWriteContract();
 
-  const handleReset = useCallback(async () => {
-    if (input === "") return;
+  const handleOnStatus = useCallback(
+    (status: LifecycleStatus) => {
+      console.log("Reset transaction status:", status);
+      if (status.statusName === "success") {
+        console.log("✅ Reset transaction successful");
+        onSuccess();
+        setInput(""); // Clear input after success
+      }
+    },
+    [onSuccess]
+  );
 
-    setIsEncryptingInput(true);
-    try {
-      const encryptedInput = await cofhejs.encrypt([
-        Encryptable.uint32(input),
-      ] as const);
+  const callsCallback = useCallback(async () => {
+    if (!input) return [];
 
-      console.log(encryptedInput);
+    // Encrypt the input
+    const encryptedInput = await cofhejs.encrypt([
+      Encryptable.uint32(input),
+    ] as const);
 
-      // Submit to contract
-      writeContract({
+    const calls: ContractFunctionParameters[] = [
+      {
         address: CONTRACT_ADDRESS as `0x${string}`,
-        abi: CONTRACT_ABI,
+        abi: CONTRACT_ABI as ContractFunctionParameters["abi"],
         functionName: "reset",
         args: [encryptedInput.data?.[0]],
-      });
-    } catch (error) {
-      console.error("Error writing to contract:", error);
-    } finally {
-      setIsEncryptingInput(false);
-    }
-  }, [input, writeContract]);
+      },
+    ];
 
-  const pending = isPending || isEncryptingInput;
+    return calls;
+  }, [input]);
 
   return (
     <div className="flex flex-row w-full gap-3">
-      <div className="flex-1">
-        <input
-          type="number"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Enter a number"
-          className="w-full px-4 py-3 bg-gray-800 text-white border-0 focus:outline-none font-(family-name:--font-clash)"
-          style={{ borderRadius: "0" }}
-        />
-      </div>
-      <button
-        className={`px-6 py-3 font-semibold uppercase tracking-widest transition-all font-(family-name:--font-clash) ${
-          pending || input === ""
-            ? "opacity-50 cursor-not-allowed"
-            : "hover:opacity-80"
-        }`}
-        style={{
-          backgroundColor: "#FFFFFF",
-          color: "#011623",
-          border: "none",
-          borderRadius: "0",
-        }}
-        onClick={handleReset}
-        disabled={pending || input === ""}
+      <input
+        type="number"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Enter a number"
+        className="flex-1 px-4 py-3 bg-gray-800 text-white border-0 focus:outline-none font-(family-name:--font-clash)"
+        style={{ borderRadius: "0" }}
+      />
+      <Transaction
+        calls={callsCallback}
+        onStatus={handleOnStatus}
+        resetAfter={2000}
       >
-        {pending && (
-          <span className="inline-block w-4 h-4 border-2 border-fhenix-dark border-t-transparent rounded-full animate-spin mr-2"></span>
-        )}
-        Reset
-      </button>
+        <TransactionButton
+          disabled={!input}
+          render={({ status, onSubmit, isDisabled }) => {
+            const isPending = status === "pending";
+            return (
+              <button
+                className={`px-6 py-3 font-semibold uppercase tracking-widest transition-all font-(family-name:--font-clash) whitespace-nowrap ${
+                  isPending || isDisabled || !input
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:opacity-80"
+                }`}
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  color: "#011623",
+                  border: "none",
+                  borderRadius: "0",
+                }}
+                onClick={onSubmit}
+                disabled={isPending || isDisabled || !input}
+              >
+                {isPending && (
+                  <span className="inline-block w-4 h-4 border-2 border-fhenix-dark border-t-transparent rounded-full animate-spin mr-2"></span>
+                )}
+                Reset
+              </button>
+            );
+          }}
+        />
+      </Transaction>
     </div>
   );
 };
@@ -288,36 +275,63 @@ const SetCounterRow = () => {
  * The smart contract handles the increment operation on the encrypted value
  * without ever decrypting it, showcasing the power of FHE.
  */
-const IncrementButton = () => {
-  const { writeContract, isPending } = useWriteContract();
+const IncrementButton = ({ onSuccess }: { onSuccess: () => void }) => {
+  const handleOnStatus = useCallback(
+    (status: LifecycleStatus) => {
+      console.log("Increment transaction status:", status);
+      if (status.statusName === "success") {
+        console.log("✅ Increment transaction successful");
+        onSuccess();
+      }
+    },
+    [onSuccess]
+  );
 
-  const handleIncrement = useCallback(() => {
-    writeContract({
+  const calls: ContractFunctionParameters[] = [
+    {
       address: CONTRACT_ADDRESS as `0x${string}`,
-      abi: CONTRACT_ABI,
+
+      abi: CONTRACT_ABI as ContractFunctionParameters["abi"],
       functionName: "increment",
-    });
-  }, [writeContract]);
+      args: [],
+    },
+  ];
 
   return (
-    <button
-      className={`px-6 py-3 font-semibold uppercase tracking-widest transition-all flex-1 font-(family-name:--font-clash) ${
-        isPending ? "opacity-50 cursor-not-allowed" : "hover:opacity-80"
-      }`}
-      style={{
-        backgroundColor: "#FFFFFF",
-        color: "#011623",
-        border: "none",
-        borderRadius: "0",
-      }}
-      onClick={handleIncrement}
-      disabled={isPending}
+    <Transaction
+      calls={calls}
+      onStatus={handleOnStatus}
+      className="flex-1"
+      resetAfter={2000}
     >
-      {isPending && (
-        <span className="inline-block w-4 h-4 border-2 border-fhenix-dark border-t-transparent rounded-full animate-spin mr-2"></span>
-      )}
-      Increment
-    </button>
+      <TransactionButton
+        render={({ status, onSubmit, isDisabled }) => {
+          const isPending = status === "pending";
+          return (
+            <button
+              className={`px-6 py-3 font-semibold uppercase tracking-widest transition-all w-full font-(family-name:--font-clash) ${
+                isPending || isDisabled
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:opacity-80"
+              }`}
+              style={{
+                backgroundColor: "#FFFFFF",
+                color: "#011623",
+                border: "none",
+                borderRadius: "0",
+              }}
+              onClick={onSubmit}
+              disabled={isPending || isDisabled}
+            >
+              {isPending && (
+                <span className="inline-block w-4 h-4 border-2 border-fhenix-dark border-t-transparent rounded-full animate-spin mr-2"></span>
+              )}
+              Increment
+            </button>
+          );
+        }}
+      />
+    </Transaction>
   );
 };
 
@@ -329,36 +343,62 @@ const IncrementButton = () => {
  * The smart contract handles the decrement operation while maintaining
  * the privacy of the actual value.
  */
-const DecrementButton = () => {
-  const { writeContract, isPending } = useWriteContract();
+const DecrementButton = ({ onSuccess }: { onSuccess: () => void }) => {
+  const handleOnStatus = useCallback(
+    (status: LifecycleStatus) => {
+      console.log("Decrement transaction status:", status);
+      if (status.statusName === "success") {
+        console.log("✅ Decrement transaction successful");
+        onSuccess();
+      }
+    },
+    [onSuccess]
+  );
 
-  const handleDecrement = useCallback(() => {
-    writeContract({
+  const calls: ContractFunctionParameters[] = [
+    {
       address: CONTRACT_ADDRESS as `0x${string}`,
-      abi: CONTRACT_ABI,
+      abi: CONTRACT_ABI as ContractFunctionParameters["abi"],
       functionName: "decrement",
-    });
-  }, [writeContract]);
+      args: [],
+    },
+  ];
 
   return (
-    <button
-      className={`px-6 py-3 font-semibold uppercase tracking-widest transition-all flex-1 font-(family-name:--font-clash) ${
-        isPending ? "opacity-50 cursor-not-allowed" : "hover:opacity-80"
-      }`}
-      style={{
-        backgroundColor: "#FFFFFF",
-        color: "#011623",
-        border: "none",
-        borderRadius: "0",
-      }}
-      onClick={handleDecrement}
-      disabled={isPending}
+    <Transaction
+      calls={calls}
+      onStatus={handleOnStatus}
+      className="flex-1"
+      resetAfter={2000}
     >
-      {isPending && (
-        <span className="inline-block w-4 h-4 border-2 border-fhenix-dark border-t-transparent rounded-full animate-spin mr-2"></span>
-      )}
-      Decrement
-    </button>
+      <TransactionButton
+        render={({ status, onSubmit, isDisabled }) => {
+          const isPending = status === "pending";
+          return (
+            <button
+              className={`px-6 py-3 font-semibold uppercase tracking-widest transition-all w-full font-(family-name:--font-clash) ${
+                isPending || isDisabled
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:opacity-80"
+              }`}
+              style={{
+                backgroundColor: "#FFFFFF",
+                color: "#011623",
+                border: "none",
+                borderRadius: "0",
+              }}
+              onClick={onSubmit}
+              disabled={isPending || isDisabled}
+            >
+              {isPending && (
+                <span className="inline-block w-4 h-4 border-2 border-fhenix-dark border-t-transparent rounded-full animate-spin mr-2"></span>
+              )}
+              Decrement
+            </button>
+          );
+        }}
+      />
+    </Transaction>
   );
 };
 
@@ -373,26 +413,54 @@ const DecrementButton = () => {
  *
  * @returns A component that displays the current encrypted counter value
  */
-const EncryptedCounterDisplay = () => {
-  // Reading encrypted data from the smart contract
-  // The 'count' value is returned as an encrypted euint32
-  // We use EncryptedValue component to display it, which handles decryption
-  const { data: count } = useReadContract({
-    address: CONTRACT_ADDRESS as `0x${string}`,
-    abi: CONTRACT_ABI,
-    functionName: "count",
-  });
+const EncryptedCounterDisplay = ({
+  count,
+  resetKey,
+}: {
+  count: bigint | undefined;
+  resetKey: number;
+}) => {
+  const [showTooltip, setShowTooltip] = useState(false);
 
   return (
     <div className="w-full">
-      <p className="text-sm text-white font-(family-name:--font-clash) mb-2">
-        Counter Value:
-      </p>
+      <div className="flex items-center gap-2 mb-2">
+        <p className="text-sm text-white font-(family-name:--font-clash)">
+          Counter Value:
+        </p>
+        <div
+          className="relative"
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+          onClick={() => setShowTooltip(!showTooltip)}
+          onTouchStart={() => setShowTooltip(!showTooltip)}
+        >
+          <InfoIcon className="w-4 h-4 text-fhenix-cyan cursor-help" />
+          {showTooltip && (
+            <div
+              className="absolute bottom-full left-0 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded whitespace-nowrap z-10 font-(family-name:--font-clash)"
+              style={{
+                boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+              }}
+            >
+              This value is decrypted locally, only you can see it.
+              <div
+                className="absolute top-full left-4 w-0 h-0"
+                style={{
+                  borderLeft: "6px solid transparent",
+                  borderRight: "6px solid transparent",
+                  borderTop: "6px solid #111827",
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
       <div className="flex flex-row w-full gap-3">
         <EncryptedValue
+          key={resetKey}
           fheType={FheTypes.Uint32}
           ctHash={count as bigint | undefined}
-          label="Count"
         />
       </div>
     </div>

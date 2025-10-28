@@ -15,7 +15,7 @@ export function Providers({ children }: { children: ReactNode }) {
         },
         wallet: {
           display: "modal",
-          preference: "all",
+          preference: "eoaOnly",
           supportedWallets: {
             rabby: true,
             trust: true,
