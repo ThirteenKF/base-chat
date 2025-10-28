@@ -6,6 +6,7 @@ import {
   Environment,
   FheTypes,
   Permit,
+  PermitOptions,
   cofhejs,
   permitStore,
 } from "cofhejs/web";
@@ -45,7 +46,7 @@ export function useCofhe(config?: Partial<CofheConfig>) {
   // Reset initialization when chain changes
   useEffect(() => {
     setGlobalIsInitialized(false);
-  }, [chainId, accountAddress]);
+  }, [chainId, accountAddress, setGlobalIsInitialized]);
 
   // Initialize when wallet is connected
   useEffect(() => {
@@ -119,7 +120,7 @@ export function useCofhe(config?: Partial<CofheConfig>) {
   ]);
 
   const createPermit = useCallback(
-    async (permitOptions?: any) => {
+    async (permitOptions?: PermitOptions) => {
       if (!globalIsInitialized || !accountAddress) {
         return {
           success: false,
@@ -231,10 +232,17 @@ export const useCofhejsActivePermitHashes = () => {
   useEffect(() => {
     const unsubscribe = permitStore.store.subscribe((state) => {
       const hash = state.activePermitHash;
-      setActivePermitHash(hash as any); // TODO: fix this
+      setActivePermitHash(
+        hash as unknown as Record<Address, string | undefined>
+      );
     });
 
-    setActivePermitHash(permitStore.store.getState().activePermitHash as any); // TODO: fix this
+    setActivePermitHash(
+      permitStore.store.getState().activePermitHash as unknown as Record<
+        Address,
+        string | undefined
+      >
+    );
 
     return () => {
       unsubscribe();
@@ -268,7 +276,7 @@ export const useCofhejsActivePermit = () => {
       account,
       activePermitHash
     );
-  }, [account, initialized, activePermitHash]);
+  }, [account, initialized, activePermitHash, chainId]);
 };
 
 export const useCofhejsAllPermits = () => {
