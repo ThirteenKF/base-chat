@@ -2,7 +2,7 @@
 
 import { useCallback, useState, useEffect } from "react";
 import { cofhejs, Encryptable, FheTypes } from "cofhejs/web";
-import { useReadContract, useAccount } from "wagmi";
+import { useReadContract } from "wagmi";
 import type { ContractFunctionParameters } from "viem";
 import {
   Transaction,
@@ -41,12 +41,13 @@ const EncryptedValue = <T extends FheTypes>({
   const [value, setValue] = useState<string | null>(null);
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const { address } = useAccount();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Reset when ctHash changes (new counter value)
   useEffect(() => {
     setValue(null);
     setIsVisible(false);
+    setErrorMessage(null);
   }, [ctHash]);
 
   const handleToggle = async () => {
@@ -60,13 +61,22 @@ const EncryptedValue = <T extends FheTypes>({
 
     // Otherwise, decrypt first
     setIsDecrypting(true);
+    setErrorMessage(null); // Clear any previous errors
     try {
-      console.log(address);
       const decryptedValue = await cofhejs.unseal(ctHash, fheType);
-      setValue(decryptedValue.data!.toString());
-      setIsVisible(true);
+      console.log(decryptedValue);
+
+      if (decryptedValue.success) {
+        setValue(decryptedValue.data!.toString());
+        setIsVisible(true);
+      } else {
+        setErrorMessage(
+          "You are not allowed to decrypt yet, interact with the contract first"
+        );
+      }
     } catch (error) {
       console.error("Decryption error:", error);
+      setErrorMessage("An unexpected error occurred during decryption");
     } finally {
       setIsDecrypting(false);
     }
@@ -83,40 +93,55 @@ const EncryptedValue = <T extends FheTypes>({
   const content = renderContent();
 
   return (
-    <button
-      onClick={handleToggle}
-      disabled={!ctHash || isDecrypting}
-      className="flex flex-1 px-6 py-3 items-center justify-center transition-all hover:scale-105 hover:opacity-90 disabled:hover:scale-100 disabled:hover:opacity-70 cursor-pointer"
-      style={{
-        borderRadius: "0",
-        background:
-          "linear-gradient(135deg, rgba(10, 217, 220, 0.1) 0%, rgba(10, 217, 220, 0.05) 100%)",
-        border: "2px solid rgba(10, 217, 220, 0.3)",
-      }}
-    >
-      <div className="flex flex-col items-center justify-center gap-2">
-        <div className="flex items-center justify-center gap-3">
-          {isDecrypting && (
-            <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+    <div className="flex flex-col flex-1 gap-2">
+      <button
+        onClick={handleToggle}
+        disabled={!ctHash || isDecrypting}
+        className="flex flex-1 px-6 py-3 items-center justify-center transition-all hover:scale-105 hover:opacity-90 disabled:hover:scale-100 disabled:hover:opacity-70 cursor-pointer"
+        style={{
+          borderRadius: "0",
+          background:
+            "linear-gradient(135deg, rgba(10, 217, 220, 0.1) 0%, rgba(10, 217, 220, 0.05) 100%)",
+          border: "2px solid rgba(10, 217, 220, 0.3)",
+        }}
+      >
+        <div className="flex flex-col items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-3">
+            {isDecrypting && (
+              <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            )}
+            <span className="text-2xl font-bold text-white font-(family-name:--font-clash) tracking-tight uppercase">
+              {content.split("").map((char, idx) => (
+                <span
+                  key={idx}
+                  className={char === "*" ? "text-fhenix-cyan" : ""}
+                >
+                  {char}
+                </span>
+              ))}
+            </span>
+          </div>
+          {showHint && (
+            <span className="text-xs text-fhenix-cyan font-(family-name:--font-clash) opacity-70">
+              Click to decrypt
+            </span>
           )}
-          <span className="text-2xl font-bold text-white font-(family-name:--font-clash) tracking-tight uppercase">
-            {content.split("").map((char, idx) => (
-              <span
-                key={idx}
-                className={char === "*" ? "text-fhenix-cyan" : ""}
-              >
-                {char}
-              </span>
-            ))}
-          </span>
         </div>
-        {showHint && (
-          <span className="text-xs text-fhenix-cyan font-(family-name:--font-clash) opacity-70">
-            Click to decrypt
-          </span>
-        )}
-      </div>
-    </button>
+      </button>
+      {errorMessage && (
+        <div
+          className="px-4 py-2 text-sm text-center font-(family-name:--font-clash)"
+          style={{
+            backgroundColor: "rgba(239, 68, 68, 0.1)",
+            border: "1px solid rgba(239, 68, 68, 0.3)",
+            borderRadius: "0",
+            color: "#fca5a5",
+          }}
+        >
+          {errorMessage}
+        </div>
+      )}
+    </div>
   );
 };
 

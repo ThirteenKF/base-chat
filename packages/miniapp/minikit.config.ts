@@ -18,7 +18,7 @@ export const minikitConfig = {
   miniapp: {
     version: "1",
     name: "Fhenix MiniApp Demo",
-    subtitle: "Confidential Computing on Chain",
+    subtitle: "Privacy onchain",
     description: "Experience Fully Homomorphic Encryption powered dApps",
     screenshotUrls: [`${ROOT_URL}/screenshot-portrait.png`],
     iconUrl: `${ROOT_URL}/blue-icon.png`,
@@ -29,7 +29,7 @@ export const minikitConfig = {
     primaryCategory: "social",
     tags: ["fhenix", "fhe", "encryption", "privacy", "defi"],
     heroImageUrl: `${ROOT_URL}/blue-hero.png`,
-    tagline: "Building the Future of Private DeFi",
+    tagline: "Privacy onchain",
     ogTitle: "Fhenix MiniApp Demo",
     ogDescription:
       "Experience confidential computing powered by Fully Homomorphic Encryption",

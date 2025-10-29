@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
         version: minikitConfig.miniapp.version,
         imageUrl: minikitConfig.miniapp.heroImageUrl,
         button: {
-          title: `Join the ${minikitConfig.miniapp.name} Waitlist`,
+          title: ` ${minikitConfig.miniapp.name}`,
           action: {
             name: `Launch ${minikitConfig.miniapp.name}`,
             type: "launch_frame",
@@ -79,14 +79,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <Providers>
-      <html lang="en">
-        <body
-          className={`${geist.variable} ${geistMono.variable} ${clashDisplay.variable}`}
-        >
+    <html lang="en">
+      <body
+        className={`${geist.variable} ${geistMono.variable} ${clashDisplay.variable}`}
+      >
+        <Providers>
           <SafeArea>{children}</SafeArea>
-        </body>
-      </html>
-    </Providers>
+        </Providers>
+      </body>
+    </html>
   );
 }

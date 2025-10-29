@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { useQuickAuth, useMiniKit } from "@coinbase/onchainkit/minikit";
+import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { ConnectWalletButton } from "../components/ConnectWalletButton";
 import { Footer } from "../components/Footer";
 import Image from "next/image";
@@ -9,16 +9,6 @@ import { usePermit } from "../hooks/usePermit";
 import { useCofheStore } from "../store/cofheStore";
 import { useAccount } from "wagmi";
 import { useCofhe } from "../hooks/useCofhe";
-
-interface AuthResponse {
-  success: boolean;
-  user?: {
-    fid: number; // FID is the unique identifier for the user
-    issuedAt?: number;
-    expiresAt?: number;
-  };
-  message?: string; // Error messages come as 'message' not 'error'
-}
 
 export default function Home() {
   const { isFrameReady, setFrameReady, context } = useMiniKit();
@@ -33,13 +23,6 @@ export default function Home() {
   } = usePermit();
   const { isInitialized: isCofheInitialized } = useCofheStore();
   const { isInitializing, isInitialized: _isInitialized } = useCofhe();
-
-  // Initialize the  miniapp
-  useEffect(() => {
-    if (!isFrameReady) {
-      setFrameReady();
-    }
-  }, [setFrameReady, isFrameReady]);
 
   const handleGeneratePermit = async () => {
     const result = await generatePermit();
@@ -64,11 +47,12 @@ export default function Home() {
   //   userFid: string;
   // }>("/api/auth");
 
-  const {
-    data: _authData,
-    isLoading: _isAuthLoading,
-    error: _authError,
-  } = useQuickAuth<AuthResponse>("/api/auth", { method: "GET" });
+  // Initialize the  miniapp
+  useEffect(() => {
+    if (!isFrameReady) {
+      setFrameReady();
+    }
+  }, [setFrameReady, isFrameReady]);
 
   return (
     <div className="min-h-screen flex flex-col bg-linear-to-b from-fhenix-dark via-slate-950 to-fhenix-dark">
