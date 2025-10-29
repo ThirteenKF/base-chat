@@ -83,7 +83,6 @@ const EncryptedValue = <T extends FheTypes>({
   };
 
   const renderContent = () => {
-    if (!ctHash) return "No data";
     if (isDecrypting) return "decrypting...";
     if (value && isVisible) return value;
     return "encryp*ed";
@@ -160,6 +159,7 @@ const EncryptedValue = <T extends FheTypes>({
 
 export const FHECounter = () => {
   const [resetKey, setResetKey] = useState(0);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Get the refetch function to manually refresh the counter after transactions
   const { data: count, refetch } = useReadContract({
@@ -168,14 +168,21 @@ export const FHECounter = () => {
     functionName: "count",
   });
 
-  const handleTransactionSuccess = useCallback(async () => {
-    // Wait a bit for the blockchain to update
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    // Refetch the counter value
-    await refetch();
-    // Force reset of the encrypted value display
-    setResetKey((prev) => prev + 1);
-  }, [refetch]);
+  const handleTransactionSuccess = useCallback(
+    async (message: string) => {
+      // Wait a bit for the blockchain to update
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Refetch the counter value
+      await refetch();
+      // Force reset of the encrypted value display
+      setResetKey((prev) => prev + 1);
+      // Show success message
+      setSuccessMessage(message);
+      // Auto-clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+    },
+    [refetch]
+  );
 
   return (
     <div
@@ -185,6 +192,20 @@ export const FHECounter = () => {
       <h2 className="text-xl font-semibold text-white font-(family-name:--font-clash) text-center">
         FHE Counter
       </h2>
+
+      {successMessage && (
+        <div
+          className="w-full px-4 py-2 text-sm text-center font-(family-name:--font-clash)"
+          style={{
+            backgroundColor: "rgba(34, 197, 94, 0.1)",
+            border: "1px solid rgba(34, 197, 94, 0.3)",
+            borderRadius: "0",
+            color: "#86efac",
+          }}
+        >
+          {successMessage}
+        </div>
+      )}
 
       <SetCounterRow onSuccess={handleTransactionSuccess} />
       <div className="flex flex-row w-full gap-3">
@@ -210,15 +231,19 @@ export const FHECounter = () => {
  * This ensures the actual value is never exposed on the blockchain,
  * maintaining privacy while still allowing computations.
  */
-const SetCounterRow = ({ onSuccess }: { onSuccess: () => void }) => {
+const SetCounterRow = ({
+  onSuccess,
+}: {
+  onSuccess: (message: string) => void;
+}) => {
   const [input, setInput] = useState<string>("");
 
   const handleOnStatus = useCallback(
     (status: LifecycleStatus) => {
       console.log("Reset transaction status:", status);
       if (status.statusName === "success") {
-        console.log("✅ Reset transaction successful");
-        onSuccess();
+        console.log(" Reset transaction successful");
+        onSuccess(" Counter reset successfully!");
         setInput(""); // Clear input after success
       }
     },
@@ -300,13 +325,17 @@ const SetCounterRow = ({ onSuccess }: { onSuccess: () => void }) => {
  * The smart contract handles the increment operation on the encrypted value
  * without ever decrypting it, showcasing the power of FHE.
  */
-const IncrementButton = ({ onSuccess }: { onSuccess: () => void }) => {
+const IncrementButton = ({
+  onSuccess,
+}: {
+  onSuccess: (message: string) => void;
+}) => {
   const handleOnStatus = useCallback(
     (status: LifecycleStatus) => {
       console.log("Increment transaction status:", status);
       if (status.statusName === "success") {
-        console.log("✅ Increment transaction successful");
-        onSuccess();
+        console.log(" Increment transaction successful");
+        onSuccess(" Counter incremented successfully!");
       }
     },
     [onSuccess]
@@ -368,13 +397,17 @@ const IncrementButton = ({ onSuccess }: { onSuccess: () => void }) => {
  * The smart contract handles the decrement operation while maintaining
  * the privacy of the actual value.
  */
-const DecrementButton = ({ onSuccess }: { onSuccess: () => void }) => {
+const DecrementButton = ({
+  onSuccess,
+}: {
+  onSuccess: (message: string) => void;
+}) => {
   const handleOnStatus = useCallback(
     (status: LifecycleStatus) => {
       console.log("Decrement transaction status:", status);
       if (status.statusName === "success") {
-        console.log("✅ Decrement transaction successful");
-        onSuccess();
+        console.log(" Decrement transaction successful");
+        onSuccess(" Counter decremented successfully!");
       }
     },
     [onSuccess]

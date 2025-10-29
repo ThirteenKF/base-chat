@@ -75,8 +75,8 @@ export default function Home() {
               </div>
 
               <p className="text-lg md:text-xl text-white leading-relaxed max-w-xl mx-auto font-(family-name:--font-geist)">
-                Hey {context?.user?.displayName || "there"}! Experience
-                confidential computing powered by Fully Homomorphic Encryption.
+                Hey {context?.user?.displayName || "there"}! Interact with
+                encrypted data on-chain without ever revealing it.
               </p>
 
               <div className="pt-4 flex justify-center">
