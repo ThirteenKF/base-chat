@@ -8,6 +8,7 @@
     "start:miniapp": "cd packages/miniapp && npm run start",
     "build:hardhat": "cd packages/hardhat && npx hardhat compile",
     "test:hardhat": "cd packages/hardhat && npx hardhat test",
+    "deploycounter:hardhat": "cd packages/hardhat && npx hardhat deploy-counter --network base-sepolia",
     "clean": "rm -rf node_modules && cd packages/miniapp && rm -rf node_modules && cd ../hardhat && rm -rf node_modules",
     "install:all": "npm install && cd packages/miniapp && npm install && cd ../hardhat && npm install"
   },

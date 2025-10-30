@@ -96,7 +96,7 @@ const EncryptedValue = <T extends FheTypes>({
       <button
         onClick={handleToggle}
         disabled={!ctHash || isDecrypting}
-        className="flex flex-1 px-6 py-3 items-center justify-center transition-all hover:scale-105 hover:opacity-90 disabled:hover:scale-100 disabled:hover:opacity-70 cursor-pointer"
+        className="flex flex-1 px-4 sm:px-6 py-4 sm:py-5 items-center justify-center transition-all hover:scale-105 hover:opacity-90 disabled:hover:scale-100 disabled:hover:opacity-70 cursor-pointer min-h-[80px]"
         style={{
           borderRadius: "0",
           background:
@@ -105,11 +105,11 @@ const EncryptedValue = <T extends FheTypes>({
         }}
       >
         <div className="flex flex-col items-center justify-center gap-2">
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-2 sm:gap-3">
             {isDecrypting && (
               <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
             )}
-            <span className="text-2xl font-bold text-white font-(family-name:--font-clash) tracking-tight uppercase">
+            <span className="text-xl sm:text-2xl font-bold text-white font-(family-name:--font-clash) tracking-tight uppercase">
               {content.split("").map((char, idx) => (
                 <span
                   key={idx}
@@ -121,7 +121,7 @@ const EncryptedValue = <T extends FheTypes>({
             </span>
           </div>
           {showHint && (
-            <span className="text-xs text-fhenix-cyan font-(family-name:--font-clash) opacity-70">
+            <span className="text-xs sm:text-sm text-fhenix-cyan font-(family-name:--font-clash) opacity-70">
               Click to decrypt
             </span>
           )}
@@ -129,7 +129,7 @@ const EncryptedValue = <T extends FheTypes>({
       </button>
       {errorMessage && (
         <div
-          className="px-4 py-2 text-sm text-center font-(family-name:--font-clash)"
+          className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-center font-(family-name:--font-clash)"
           style={{
             backgroundColor: "rgba(239, 68, 68, 0.1)",
             border: "1px solid rgba(239, 68, 68, 0.3)",
@@ -186,16 +186,16 @@ export const FHECounter = () => {
 
   return (
     <div
-      className="flex flex-col px-8 py-8 items-center gap-4"
+      className="flex flex-col px-4 sm:px-8 py-6 sm:py-8 items-center gap-4 w-full max-w-2xl mx-auto"
       style={{ backgroundColor: "#122531" }}
     >
-      <h2 className="text-xl font-semibold text-white font-(family-name:--font-clash) text-center">
+      <h2 className="text-lg sm:text-xl font-semibold text-white font-(family-name:--font-clash) text-center">
         FHE Counter
       </h2>
 
       {successMessage && (
         <div
-          className="w-full px-4 py-2 text-sm text-center font-(family-name:--font-clash)"
+          className="w-full px-3 sm:px-4 py-2 text-xs sm:text-sm text-center font-(family-name:--font-clash)"
           style={{
             backgroundColor: "rgba(34, 197, 94, 0.1)",
             border: "1px solid rgba(34, 197, 94, 0.3)",
@@ -208,7 +208,7 @@ export const FHECounter = () => {
       )}
 
       <SetCounterRow onSuccess={handleTransactionSuccess} />
-      <div className="flex flex-row w-full gap-3">
+      <div className="flex flex-col sm:flex-row w-full gap-3">
         <IncrementButton onSuccess={handleTransactionSuccess} />
         <DecrementButton onSuccess={handleTransactionSuccess} />
       </div>
@@ -271,13 +271,13 @@ const SetCounterRow = ({
   }, [input]);
 
   return (
-    <div className="flex flex-row w-full gap-3">
+    <div className="flex flex-col sm:flex-row w-full gap-3">
       <input
         type="number"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder="Enter a number"
-        className="flex-1 px-4 py-3 bg-gray-800 text-white border-0 focus:outline-none font-(family-name:--font-clash)"
+        className="flex-1 px-3 sm:px-4 py-3 bg-gray-800 text-white border-0 focus:outline-none font-(family-name:--font-clash) text-sm sm:text-base"
         style={{ borderRadius: "0" }}
       />
       <Transaction
@@ -291,7 +291,7 @@ const SetCounterRow = ({
             const isPending = status === "pending";
             return (
               <button
-                className={`px-6 py-3 font-semibold uppercase tracking-widest transition-all font-(family-name:--font-clash) whitespace-nowrap ${
+                className={`px-4 sm:px-6 py-3 font-semibold uppercase tracking-widest transition-all font-(family-name:--font-clash) whitespace-nowrap text-sm sm:text-base w-full sm:w-auto ${
                   isPending || isDisabled || !input
                     ? "opacity-50 cursor-not-allowed"
                     : "hover:opacity-80"
@@ -363,7 +363,7 @@ const IncrementButton = ({
           const isPending = status === "pending";
           return (
             <button
-              className={`px-6 py-3 font-semibold uppercase tracking-widest transition-all w-full font-(family-name:--font-clash) ${
+              className={`px-4 sm:px-6 py-3 font-semibold uppercase tracking-widest transition-all w-full font-(family-name:--font-clash) text-sm sm:text-base ${
                 isPending || isDisabled
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:opacity-80"
@@ -434,7 +434,7 @@ const DecrementButton = ({
           const isPending = status === "pending";
           return (
             <button
-              className={`px-6 py-3 font-semibold uppercase tracking-widest transition-all w-full font-(family-name:--font-clash) ${
+              className={`px-4 sm:px-6 py-3 font-semibold uppercase tracking-widest transition-all w-full font-(family-name:--font-clash) text-sm sm:text-base ${
                 isPending || isDisabled
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:opacity-80"
@@ -482,8 +482,8 @@ const EncryptedCounterDisplay = ({
 
   return (
     <div className="w-full">
-      <div className="flex items-center gap-2 mb-2">
-        <p className="text-sm text-white font-(family-name:--font-clash)">
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <p className="text-xs sm:text-sm text-white font-(family-name:--font-clash)">
           Counter Value:
         </p>
         <div
@@ -493,7 +493,7 @@ const EncryptedCounterDisplay = ({
           onClick={() => setShowTooltip(!showTooltip)}
           onTouchStart={() => setShowTooltip(!showTooltip)}
         >
-          <InfoIcon className="w-4 h-4 text-fhenix-cyan cursor-help" />
+          <InfoIcon className="w-3 h-3 sm:w-4 sm:h-4 text-fhenix-cyan cursor-help" />
           {showTooltip && (
             <div
               className="absolute bottom-full left-0 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded whitespace-nowrap z-10 font-(family-name:--font-clash)"
