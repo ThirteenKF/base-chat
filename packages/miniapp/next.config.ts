@@ -6,17 +6,19 @@ const nextConfig: NextConfig = {
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,
+      layers: true,
     };
 
-    // Добавляем правило для .wasm файлов
+    // Правило для .wasm файлов
     config.module.rules.push({
       test: /\.wasm$/,
       type: 'webassembly/async',
     });
 
-    // Для клиентской части отключаем node-модули
+    // Для клиентской части добавляем полифиллы
     if (!isServer) {
       config.resolve.fallback = {
+        ...config.resolve.fallback,
         fs: false,
         net: false,
         tls: false,
@@ -26,6 +28,12 @@ const nextConfig: NextConfig = {
         os: false,
       };
     }
+
+    // Добавляем поддержку top-level await
+    config.output.environment = {
+      ...config.output.environment,
+      asyncFunction: true,
+    };
 
     return config;
   },

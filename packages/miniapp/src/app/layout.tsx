@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Providers } from "./providers";
+import { FhenixProvider } from "./fhenix-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,7 +16,11 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <FhenixProvider>
+            {children}
+          </FhenixProvider>
+        </Providers>
       </body>
     </html>
   );
