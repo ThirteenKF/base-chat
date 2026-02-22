@@ -1,51 +1,65 @@
 @import "tailwindcss";
 
 @theme {
-  --color-fhenix-cyan: #0ad9dc;
-  --color-fhenix-dark: #011623;
+  --color-base-blue: #0052FF;
+  --color-base-dark: #0A0B0D;
+  --color-base-light: #F5F7FA;
+  --color-base-gray: #6B7280;
 }
 
 @layer base {
   :root {
-    --background: #ffffff;
-    --foreground: #171717;
+    /* Светлая тема (по умолчанию) */
+    --background: #F5F7FA;
+    --foreground: #0A0B0D;
+    --primary: #0052FF;
+    --secondary: #6B7280;
+    --border: #E5E7EB;
+    --message-sent: #0052FF;
+    --message-received: #FFFFFF;
+    --input-bg: #FFFFFF;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --background: #011623;
-      --foreground: #ffffff;
-    }
+  .dark-theme {
+    /* Темная тема */
+    --background: #0A0B0D;
+    --foreground: #FFFFFF;
+    --primary: #0052FF;
+    --secondary: #9CA3AF;
+    --border: #2C2E35;
+    --message-sent: #0052FF;
+    --message-received: #1A1B1F;
+    --input-bg: #1A1B1F;
   }
 
   html,
   body {
     max-width: 100vw;
     overflow-x: hidden;
+    height: 100%;
   }
 
   body {
     color: var(--foreground);
     background: var(--background);
-    font-family: var(--font-geist), sans-serif;
+    font-family: var(--font-geist), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.2s ease;
   }
 
   code {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: rgba(0, 82, 255, 0.05);
     border-radius: 6px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 82, 255, 0.1);
     font-family: var(--font-geist-mono), monospace;
     font-size: 0.875rem;
     padding: 0.25rem 0.5rem calc(0.25rem + 2px);
   }
 
-  @media (prefers-color-scheme: dark) {
-    code {
-      background-color: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
+  .dark-theme code {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   * {
@@ -55,13 +69,139 @@
   }
 
   a {
-    color: inherit;
+    color: var(--primary);
     text-decoration: none;
+    transition: opacity 0.2s;
   }
 
-  @media (prefers-color-scheme: dark) {
-    html {
-      color-scheme: dark;
-    }
+  a:hover {
+    opacity: 0.8;
+  }
+
+  /* Стили для чата */
+  .chat-container {
+    display: flex;
+    height: 100vh;
+    background: var(--background);
+    color: var(--foreground);
+  }
+
+  .sidebar {
+    width: 300px;
+    border-right: 1px solid var(--border);
+    background: var(--message-received);
+    padding: 20px;
+  }
+
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--background);
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .message-sent {
+    align-self: flex-end;
+    background: var(--message-sent);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 18px 18px 4px 18px;
+    max-width: 70%;
+    word-wrap: break-word;
+  }
+
+  .message-received {
+    align-self: flex-start;
+    background: var(--message-received);
+    color: var(--foreground);
+    padding: 10px 15px;
+    border-radius: 18px 18px 18px 4px;
+    max-width: 70%;
+    word-wrap: break-word;
+    border: 1px solid var(--border);
+  }
+
+  .input-area {
+    padding: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    background: var(--message-received);
+  }
+
+  .input-area input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--foreground);
+    font-size: 14px;
+  }
+
+  .input-area input:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .input-area button {
+    padding: 12px 24px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s;
+  }
+
+  .input-area button:hover {
+    opacity: 0.9;
+  }
+
+  .theme-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px;
+    background: var(--message-received);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    z-index: 1000;
+    transition: all 0.2s;
+  }
+
+  .theme-toggle:hover {
+    transform: scale(1.1);
+    border-color: var(--primary);
+  }
+
+  /* Класс для принудительной темной темы */
+  .dark-theme .message-received {
+    background: #1A1B1F;
+  }
+
+  .dark-theme .sidebar {
+    background: #1A1B1F;
+  }
+
+  .dark-theme .input-area {
+    background: #1A1B1F;
   }
 }
