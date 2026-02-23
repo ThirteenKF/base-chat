@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ],
+  "buildCommand": "cd packages/miniapp && npm run build",
+  "outputDirectory": "packages/miniapp/.next"
+}
