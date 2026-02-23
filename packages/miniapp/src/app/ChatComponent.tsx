@@ -269,7 +269,7 @@ export default function ChatComponent() {
 
   // Инициализация контракта с проверками
   useEffect(() => {
-    if (walletClient && CONTRACT_ADDRESS && CONTRACT_ADDRESS !== '0x...') {
+    if (walletClient && CONTRACT_ADDRESS && CONTRACT_ADDRESS.startsWith('0x')) {
       try {
         const provider = new ethers.providers.Web3Provider(walletClient.transport);
         const signer = provider.getSigner();
