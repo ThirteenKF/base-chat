@@ -4,11 +4,25 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAccount, useWalletClient } from 'wagmi';
 import { ethers } from 'ethers';
 
+// Определяем типы вместо any
+interface EncryptedData {
+  ctHash: string;
+  securityZone: number;
+  utype: number;
+  signature: string;
+}
+
+interface PermitData {
+  issuer: string;
+  target: string;
+  getHash: () => string;
+}
+
 interface FhenixContextType {
   isInitialized: boolean;
-  encrypt: (value: number | bigint, type: string) => Promise<any>;
-  unseal: (encryptedData: any, type: string) => Promise<any>;
-  createPermit: (targetAddress?: string) => Promise<any>;
+  encrypt: (value: number | bigint, type: string) => Promise<EncryptedData>;
+  unseal: (encryptedData: EncryptedData, type: string) => Promise<number>;
+  createPermit: (targetAddress?: string) => Promise<{ success: boolean; data: PermitData }>;
   encryptionState: string;
 }
 
@@ -19,15 +33,16 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
   const { data: walletClient } = useWalletClient();
   const [isInitialized, setIsInitialized] = useState(false);
   const [encryptionState, setEncryptionState] = useState('Starting...');
-  const [cofhejs, setCofhejs] = useState<any>(null);
+  const [cofhejsModule, setCofhejsModule] = useState<any>(null);
 
   // Загружаем cofhejs/web
   useEffect(() => {
     const loadCofhejs = async () => {
       try {
-        const module = await import('cofhejs/web');
+        // ИСПРАВЛЕНО: renamed from 'module' to 'cofhejsModule'
+        const loadedModule = await import('cofhejs/web');
         console.log('✅ cofhejs/web загружен');
-        setCofhejs(module);
+        setCofhejsModule(loadedModule);
         setEncryptionState('Module loaded');
       } catch (error) {
         console.error('❌ Ошибка загрузки cofhejs/web:', error);
@@ -41,7 +56,7 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
   // Инициализация Fhenix
   useEffect(() => {
     const initFhenix = async () => {
-      if (walletClient && address && cofhejs && !isInitialized) {
+      if (walletClient && address && cofhejsModule && !isInitialized) {
         try {
           console.log('🔄 Инициализация Fhenix...');
           setEncryptionState('Initializing...');
@@ -49,7 +64,7 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
           const provider = new ethers.providers.Web3Provider(walletClient.transport);
           const signer = provider.getSigner();
           
-          const api = cofhejs.cofhejs || cofhejs;
+          const api = cofhejsModule.cofhejs || cofhejsModule;
           
           if (api && typeof api.initializeWithEthers === 'function') {
             const initResult = await api.initializeWithEthers({
@@ -88,31 +103,25 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
     };
 
     initFhenix();
-  }, [walletClient, address, cofhejs]);
+  }, [walletClient, address, cofhejsModule, isInitialized]);
 
-  // Функция шифрования - ВАЖНО: возвращаем объект в правильном формате
-  const encrypt = async (value: number | bigint, type: string) => {
+  // Функция шифрования
+  const encrypt = async (value: number | bigint, _type: string): Promise<EncryptedData> => {
     if (!isInitialized) throw new Error('Fhenix не инициализирован');
     
     console.log(`🔐 Шифруем значение: ${value}`);
     
-    try {
-      // В тестовом режиме возвращаем объект, похожий на зашифрованные данные
-      // Это должно соответствовать формату inEuint32 из ABI
-      return {
-        ctHash: ethers.BigNumber.from(value).toHexString(),
-        securityZone: 0,
-        utype: 0, // 0 = Uint32
-        signature: "0x" + "00".repeat(65) // Пустая подпись
-      };
-    } catch (error) {
-      console.error('❌ Ошибка шифрования:', error);
-      throw error;
-    }
+    // В тестовом режиме возвращаем объект с правильной структурой
+    return {
+      ctHash: ethers.BigNumber.from(value).toHexString(),
+      securityZone: 0,
+      utype: 0,
+      signature: "0x" + "00".repeat(65)
+    };
   };
 
   // Функция создания permit
-  const createPermit = async (targetAddress?: string) => {
+  const createPermit = async (targetAddress?: string): Promise<{ success: boolean; data: PermitData }> => {
     if (!address) throw new Error('Нет адреса');
     
     console.log(`📝 Создаём permit для ${targetAddress || 'себя'}`);
@@ -127,21 +136,16 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Функция расшифровки
-  const unseal = async (encryptedData: any, type: string) => {
+  const unseal = async (encryptedData: EncryptedData, _type: string): Promise<number> => {
     if (!isInitialized) throw new Error('Fhenix не инициализирован');
     
     console.log(`🔓 Расшифровываем данные`);
     
     try {
-      // В тестовом режиме извлекаем значение из ctHash
+      // Извлекаем значение из ctHash
       if (encryptedData && encryptedData.ctHash) {
-        // Преобразуем hex обратно в число
         const value = parseInt(encryptedData.ctHash, 16);
         return value;
-      }
-      // Если данные пришли как число, возвращаем как есть
-      if (typeof encryptedData === 'number') {
-        return encryptedData;
       }
       return 65; // 'A' по умолчанию
     } catch (error) {
