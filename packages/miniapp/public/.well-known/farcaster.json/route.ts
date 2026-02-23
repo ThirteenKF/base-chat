@@ -1,7 +1,17 @@
 {
   "accountAssociation": {
-    "header": "eyJmaWQiOjI4MzI5NjksInR5cGUiOiJhdXRoIiwia2V5IjoiMHhGOTlmMTFmODFDMGQ0YTBCYjcwNTAzMTI5NTU1NUVEMzE1YzY3MzQzIn0",
+    "header": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
     "payload": "eyJkb21haW4iOiJiYXNlY2hhdC10YXUudmVyY2VsLmFwcCJ9",
-    "signature": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEFEVaJlpAzxbVucv-LP1tMQxvyN7mumx60MEk_ZSPrgkj-8XTiUqyU-5oQiLx89RCbUPXZRj4vWrc3CWLiqBu-DGwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "signature": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  },
+  "frame": {
+    "name": "Base Chat",
+    "homeUrl": "https://basechat-tau.vercel.app",
+    "iconUrl": "https://basechat-tau.vercel.app/icon.png",
+    "splashImageUrl": "https://basechat-tau.vercel.app/splash.png",
+    "splashBackgroundColor": "#0052FF",
+    "description": "Зашифрованный мессенджер на базе Base и FHE",
+    "primaryCategory": "social",
+    "tags": ["messaging", "encryption", "privacy"]
   }
 }
