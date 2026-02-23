@@ -1,8 +1,8 @@
 export const minikitConfig = {
   accountAssociation: {
-    header: "",
-    payload: "",
-    signature: "",
+    header: "eyJmaWQi0jI4MzI5NjksInR5cGUiOiJhdXRoiIwi2V5IjOiMHhGOT1mMTFm",
+    payload: "eyJkb21haW4iOiJiYXNlY2hhdC10YXUudmVyY2VsLmFwcCJ9",
+    signature: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
   },
   miniapp: {
     version: "1",
