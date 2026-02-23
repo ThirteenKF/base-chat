@@ -1,5 +1,4 @@
 {
-  "buildCommand": "cd packages/miniapp && npm run build",
-  "outputDirectory": "packages/miniapp/.next",
-  "installCommand": "cd packages/miniapp && npm install"
+  "buildCommand": "./build.sh",
+  "outputDirectory": "packages/miniapp/.next"
 }
