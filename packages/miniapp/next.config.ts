@@ -2,38 +2,34 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   webpack: (config, { isServer }) => {
-    // Включаем поддержку WebAssembly
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,
       layers: true,
+      topLevelAwait: true
     };
 
-    // Правило для .wasm файлов
+    config.optimization.moduleIds = 'named';
+
     config.module.rules.push({
       test: /\.wasm$/,
-      type: 'webassembly/async',
+      type: 'asset/resource',
     });
 
-    // Для клиентской части добавляем полифиллы
+    // Добавляем полифиллы для браузера
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
         net: false,
         tls: false,
-        crypto: false,
-        stream: false,
-        path: false,
-        os: false,
+        crypto: require.resolve('crypto-browserify'),
+        stream: require.resolve('stream-browserify'),
+        buffer: require.resolve('buffer/'),
+        util: require.resolve('util/'),
+        'text-encoding': require.resolve('text-encoding'),
       };
     }
-
-    // Добавляем поддержку top-level await
-    config.output.environment = {
-      ...config.output.environment,
-      asyncFunction: true,
-    };
 
     return config;
   },

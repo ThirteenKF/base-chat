@@ -4,10 +4,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAccount, useConnect, useDisconnect, useWalletClient } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 import { ethers } from 'ethers';
-import { BaseChatABI } from './contract/BaseChatABI';
+import { EncryptedBaseChatABI } from './contract/EncryptedBaseChatABI';
+import { useFhenix } from './fhenix-provider';
 
-// ВСТАВЬ СЮДА АДРЕС СВОЕГО КОНТРАКТА (из Remix)
-const CONTRACT_ADDRESS = '0xc214aA9dafda6D93FA5942eB16627e11e1c363E8'; // Замени на свой адрес!
+// ВСТАВЬ СЮДА НОВЫЙ АДРЕС КОНТРАКТА ИЗ REMIX
+const CONTRACT_ADDRESS = '0x735fa4a410108fac3aB9BD95B7d3Fe24232DA3f1'; // ЗАМЕНИ НА СВОЙ!
 
 // Типы для языков
 type Language = 'en' | 'ru' | 'zh';
@@ -15,7 +16,6 @@ type Language = 'en' | 'ru' | 'zh';
 // Переводы интерфейса
 const translations = {
   en: {
-    // Основные
     appName: 'Base Chat',
     connectWallet: '🔌 Connect Wallet',
     disconnect: 'Disconnect',
@@ -41,15 +41,16 @@ const translations = {
     },
     send: 'Send',
     gasInfo: '⚡ Base Sepolia • Each message requires gas',
-    // Статусы сообщений
     sending: '⏳',
     sent: '🕒',
     confirmed: '✅',
-    // Кнопки языка
     language: 'Language',
     english: 'English',
     russian: 'Russian',
-    chinese: 'Chinese'
+    chinese: 'Chinese',
+    fheReady: '🔐 FHE Ready',
+    fheInit: '⏳ FHE Initializing...',
+    fheState: 'State:'
   },
   ru: {
     appName: 'Base Chat',
@@ -83,7 +84,10 @@ const translations = {
     language: 'Язык',
     english: 'Английский',
     russian: 'Русский',
-    chinese: 'Китайский'
+    chinese: 'Китайский',
+    fheReady: '🔐 FHE Ready',
+    fheInit: '⏳ FHE инициализация...',
+    fheState: 'Состояние:'
   },
   zh: {
     appName: 'Base Chat',
@@ -117,7 +121,10 @@ const translations = {
     language: '语言',
     english: '英语',
     russian: '俄语',
-    chinese: '中文'
+    chinese: '中文',
+    fheReady: '🔐 FHE Ready',
+    fheInit: '⏳ FHE初始化...',
+    fheState: '状态:'
   }
 };
 
@@ -143,6 +150,7 @@ export default function ChatComponent() {
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();
   const { data: walletClient } = useWalletClient();
+  const { isInitialized, encrypt, unseal, createPermit, encryptionState } = useFhenix();
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -246,7 +254,6 @@ export default function ChatComponent() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Конвертируем строки обратно в Date
         const contactsWithDates = parsed.map((c: any) => ({
           ...c,
           lastMessageTime: c.lastMessageTime ? new Date(c.lastMessageTime) : undefined
@@ -260,22 +267,44 @@ export default function ChatComponent() {
     }
   };
 
-  // Инициализация контракта
+  // Инициализация контракта с проверками
   useEffect(() => {
-    if (walletClient && CONTRACT_ADDRESS !== '0x...') {
+    if (walletClient && CONTRACT_ADDRESS && CONTRACT_ADDRESS !== '0x...') {
       try {
         const provider = new ethers.providers.Web3Provider(walletClient.transport);
         const signer = provider.getSigner();
         
+        console.log('🔄 Инициализация контракта с адресом:', CONTRACT_ADDRESS);
+        
+        if (!EncryptedBaseChatABI) {
+          console.error('❌ ABI не загружен');
+          return;
+        }
+        
         const chatContract = new ethers.Contract(
           CONTRACT_ADDRESS,
-          BaseChatABI,
+          EncryptedBaseChatABI,
           signer
         );
+        
+        console.log('✅ Контракт создан:', chatContract);
         setContract(chatContract);
+        
+        // Проверяем, что контракт отвечает
+        chatContract.getTotalMessages().then((count: any) => {
+          console.log('✅ Контракт отвечает, всего сообщений:', count.toString());
+        }).catch((err: any) => {
+          console.error('❌ Контракт не отвечает:', err);
+        });
+        
       } catch (error) {
-        console.error('Ошибка инициализации контракта:', error);
+        console.error('❌ Ошибка инициализации контракта:', error);
       }
+    } else {
+      console.log('⏳ Ожидание параметров контракта:', { 
+        walletClient: !!walletClient, 
+        address: CONTRACT_ADDRESS 
+      });
     }
   }, [walletClient]);
 
@@ -303,31 +332,75 @@ export default function ChatComponent() {
     setMessages([]);
   };
 
-  // Загрузка сообщений
+  // Загрузка сообщений с расшифровкой
   const loadMessages = async () => {
-    if (!contract || !address || !recipient) return;
+    if (!contract || !address || !recipient) {
+      console.log('❌ loadMessages: отсутствуют параметры', { 
+        contract: !!contract, 
+        address, 
+        recipient 
+      });
+      return;
+    }
     
     setIsLoading(true);
     try {
+      console.log('📥 Загружаем сообщения из контракта:', contract.address);
       const conversation = await contract.getConversation(address, recipient);
       
-      const loadedMessages = conversation.map((msg: any, index: number) => ({
-        id: index,
-        sender: msg.sender,
-        content: msg.content,
-        timestamp: new Date(Number(msg.timestamp) * 1000),
-        status: 'confirmed'
-      }));
+      if (!conversation || conversation.length === 0) {
+        console.log('ℹ️ Нет сообщений');
+        setMessages([]);
+        return;
+      }
+      
+      const loadedMessages: Message[] = [];
+      let currentMessage = '';
+      let messageId = 0;
+      let lastTimestamp = new Date();
+      
+      for (let i = 0; i < conversation.length; i++) {
+        const msg = conversation[i];
+        
+        if (isInitialized && (msg.sender.toLowerCase() === address?.toLowerCase() || 
+            msg.recipient.toLowerCase() === address?.toLowerCase())) {
+          try {
+            const permit = await createPermit();
+            const encryptedData = msg.encryptedContent || msg.content;
+            const decryptedValue = await unseal(encryptedData, 'uint32');
+            
+            if (typeof decryptedValue === 'number' && decryptedValue > 0) {
+              currentMessage += String.fromCharCode(decryptedValue);
+              lastTimestamp = new Date(Number(msg.timestamp) * 1000);
+              
+              if (currentMessage.length >= 20 || i === conversation.length - 1) {
+                if (currentMessage.length > 0) {
+                  loadedMessages.push({
+                    id: messageId++,
+                    sender: msg.sender,
+                    content: currentMessage,
+                    timestamp: lastTimestamp,
+                    status: 'confirmed'
+                  });
+                  currentMessage = '';
+                }
+              }
+            }
+          } catch (e) {
+            console.log('⚠️ Не удалось расшифровать символ:', e);
+          }
+        }
+      }
       
       setMessages(loadedMessages);
+      console.log(`✅ Загружено ${loadedMessages.length} сообщений`);
       
-      // Обновляем последнее сообщение в контакте
       if (loadedMessages.length > 0 && selectedContact) {
         updateContactLastMessage(selectedContact, loadedMessages[loadedMessages.length - 1].content);
       }
       
     } catch (error) {
-      console.error('Ошибка загрузки сообщений:', error);
+      console.error('❌ Ошибка загрузки сообщений:', error);
     } finally {
       setIsLoading(false);
     }
@@ -343,7 +416,7 @@ export default function ChatComponent() {
     saveContacts(updatedContacts);
   };
 
-  // Отправка сообщения
+  // НОВАЯ ФУНКЦИЯ: Отправка сообщения пакетом (100 символов = 1 транзакция)
   const sendMessage = async () => {
     if (!newMessage.trim() || !recipient.trim() || !contract) {
       alert('Введите адрес получателя и сообщение');
@@ -355,9 +428,14 @@ export default function ChatComponent() {
       return;
     }
 
+    if (!isInitialized) {
+      alert('Fhenix инициализируется, подождите...');
+      return;
+    }
+
     setIsSending(true);
 
-    // Временное сообщение
+    // Временное сообщение для отображения
     const tempId = Date.now();
     const tempMessage: Message = {
       id: tempId,
@@ -368,28 +446,48 @@ export default function ChatComponent() {
     };
     
     setMessages([...messages, tempMessage]);
+    const originalMessage = newMessage;
     setNewMessage('');
 
     try {
-      const tx = await contract.sendMessage(recipient, newMessage);
+      // Разбиваем сообщение на отдельные символы
+      const chars = originalMessage.split('').map(c => c.charCodeAt(0));
+      console.log(`🔐 Подготавливаем ${chars.length} символов для пакетной отправки...`);
       
-      setMessages(prev => prev.map(msg => 
-        msg.id === tempId ? { ...msg, status: 'sent', txHash: tx.hash } : msg
-      ));
+      // Шифруем ВСЕ символы и собираем в массив
+      const encryptedValues = [];
+      for (let i = 0; i < chars.length; i++) {
+        const char = chars[i];
+        console.log(`Шифруем символ ${i + 1}/${chars.length}: ${String.fromCharCode(char)} (${char})`);
+        
+        // Шифруем символ
+        const encryptedValue = await encrypt(char, 'uint32');
+        encryptedValues.push(encryptedValue);
+      }
       
+      // Создаём один permit для получателя (достаточно одного)
+      const permit = await createPermit(recipient);
+      
+      console.log(`📤 Отправляем ПАКЕТ из ${encryptedValues.length} символов ОДНОЙ транзакцией...`);
+      
+      // Отправляем ВСЕ символы одной транзакцией
+      const tx = await contract.sendBatchMessages(recipient, encryptedValues);
       const receipt = await tx.wait();
       
+      console.log('✅ Пакет отправлен, хэш:', receipt.transactionHash);
+      console.log(`✅ Сообщение из ${chars.length} символов доставлено одной транзакцией!`);
+      
+      // Обновляем статус сообщения
       setMessages(prev => prev.map(msg => 
-        msg.id === tempId ? { ...msg, status: 'confirmed' } : msg
+        msg.id === tempId ? { ...msg, status: 'confirmed', txHash: receipt.transactionHash } : msg
       ));
       
-      // Обновляем последнее сообщение контакта, если он есть
       if (selectedContact) {
-        updateContactLastMessage(selectedContact, newMessage);
+        updateContactLastMessage(selectedContact, originalMessage);
       }
       
     } catch (error) {
-      console.error('Ошибка отправки:', error);
+      console.error('❌ Ошибка отправки:', error);
       setMessages(prev => prev.filter(msg => msg.id !== tempId));
       alert('Ошибка при отправке: ' + (error as Error).message);
     } finally {
@@ -427,12 +525,10 @@ export default function ChatComponent() {
     const updatedContacts = [newContact, ...contacts];
     saveContacts(updatedContacts);
     
-    // Сброс формы
     setNewContactName('');
     setNewContactAddress('');
     setShowAddContact(false);
     
-    // Автоматически выбираем новый контакт
     selectContact(newContact);
   };
 
@@ -667,37 +763,66 @@ export default function ChatComponent() {
               )}
             </div>
           ) : (
-            <div style={{
-              padding: '10px',
-              background: 'var(--background)',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              fontSize: '12px'
-            }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>{t('connected')}</div>
-              <div style={{ 
-                fontFamily: 'monospace',
-                wordBreak: 'break-all',
-                color: '#0052FF',
-                fontSize: '11px'
+            <div>
+              <div style={{
+                padding: '10px',
+                background: 'var(--background)',
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
+                fontSize: '12px',
+                marginBottom: '10px'
               }}>
-                {shortenAddress(address || '')}
-              </div>
-              <button
-                onClick={disconnectWallet}
-                style={{
-                  marginTop: '8px',
-                  padding: '4px 8px',
-                  background: '#ff4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>{t('connected')}</div>
+                <div style={{ 
+                  fontFamily: 'monospace',
+                  wordBreak: 'break-all',
+                  color: '#0052FF',
                   fontSize: '11px'
-                }}
-              >
-                {t('disconnect')}
-              </button>
+                }}>
+                  {shortenAddress(address || '')}
+                </div>
+                <button
+                  onClick={disconnectWallet}
+                  style={{
+                    marginTop: '8px',
+                    padding: '4px 8px',
+                    background: '#ff4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '11px'
+                  }}
+                >
+                  {t('disconnect')}
+                </button>
+              </div>
+
+              {/* Индикатор FHE */}
+              <div style={{
+                padding: '8px 12px',
+                background: isInitialized ? '#00aa00' : '#ffaa00',
+                color: 'white',
+                borderRadius: '8px',
+                fontSize: '11px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <span>
+                  {isInitialized ? '🔐 FHE Ready' : '⏳ FHE Initializing...'}
+                </span>
+                {encryptionState && (
+                  <span style={{ 
+                    fontSize: '9px', 
+                    background: 'rgba(255,255,255,0.2)',
+                    padding: '2px 4px',
+                    borderRadius: '4px'
+                  }}>
+                    {encryptionState}
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -1066,13 +1191,14 @@ export default function ChatComponent() {
                 !isConnected ? t('messagePlaceholder.notConnected') :
                 !recipient ? t('messagePlaceholder.noRecipient') :
                 isSending ? t('messagePlaceholder.sending') :
+                !isInitialized ? '⏳ FHE Initializing...' :
                 t('messagePlaceholder.default')
               }
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-              disabled={isSending || !isConnected || !recipient}
-              maxLength={280}
+              disabled={isSending || !isConnected || !recipient || !isInitialized}
+              maxLength={500}
               style={{
                 flex: 1,
                 padding: '12px',
@@ -1086,15 +1212,15 @@ export default function ChatComponent() {
             />
             <button 
               onClick={sendMessage}
-              disabled={isSending || !isConnected || !recipient}
+              disabled={isSending || !isConnected || !recipient || !isInitialized}
               style={{
                 padding: '12px 24px',
                 background: '#0052FF',
                 color: 'white',
                 border: 'none',
                 borderRadius: '24px',
-                cursor: (isSending || !isConnected || !recipient) ? 'not-allowed' : 'pointer',
-                opacity: (isSending || !isConnected || !recipient) ? 0.5 : 1,
+                cursor: (isSending || !isConnected || !recipient || !isInitialized) ? 'not-allowed' : 'pointer',
+                opacity: (isSending || !isConnected || !recipient || !isInitialized) ? 0.5 : 1,
                 fontWeight: 'bold'
               }}
             >
@@ -1108,7 +1234,7 @@ export default function ChatComponent() {
             color: 'var(--secondary)',
             textAlign: 'center'
           }}>
-            {t('gasInfo')}
+            {t('gasInfo')} • {isInitialized ? '🔐 Пакетная отправка (100 символов = 1 транзакция)' : '⏳ Инициализация FHE...'}
           </div>
         </div>
       </div>
