@@ -1,4 +1,5 @@
 #!/bin/bash
-cd packages/miniapp
+set -e
+
 npm install
 npm run build
