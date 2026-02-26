@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
 
-npm install
+# Vercel уже устанавливает зависимости перед сборкой,
+# поэтому здесь просто запускаем production build.
 npm run build
