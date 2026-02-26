@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import {
   Name,
   Identity,
@@ -21,16 +20,18 @@ export function ConnectWalletButton() {
   const { isConnected, chainId } = useAccount();
   const { switchChain } = useSwitchChain();
 
-  // Automatically switch to Base Sepolia if connected to wrong chain
-  useEffect(() => {
-    if (isConnected && chainId !== baseSepolia.id) {
-      switchChain?.({ chainId: baseSepolia.id });
-    }
-  }, [isConnected, chainId, switchChain]);
-
   return (
     <Wallet>
       <ConnectWallet />
+      {isConnected && chainId !== baseSepolia.id && (
+        <button
+          type="button"
+          onClick={() => switchChain?.({ chainId: baseSepolia.id })}
+          className="mt-2 w-full px-3 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 text-white"
+        >
+          Switch to Base Sepolia
+        </button>
+      )}
       <WalletDropdown>
         <Identity hasCopyAddressOnClick>
           <Avatar />

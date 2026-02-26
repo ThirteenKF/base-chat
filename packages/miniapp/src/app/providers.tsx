@@ -10,9 +10,16 @@ const queryClient = new QueryClient();
 
 export const wagmiConfig = createConfig({
   chains: [baseSepolia],
-  connectors: [injected()],
-  ssr: true,
-  multiInjectedProviderDiscovery: true,
+  // Fast connect for injected wallets (Rabby, MetaMask, etc.)
+  // - avoid EIP-6963 multi-provider discovery overhead unless you need a wallet picker
+  // - reduce async injection wait time (defaults can feel "slow" on first connect)
+  connectors: [
+    injected({
+      unstable_shimAsyncInject: 200,
+    }),
+  ],
+  ssr: false,
+  multiInjectedProviderDiscovery: false,
   transports: {
     [baseSepolia.id]: http("https://sepolia.base.org"),
   },
