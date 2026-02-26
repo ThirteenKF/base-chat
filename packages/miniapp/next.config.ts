@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // На Vercel Output Directory настроен как "packages/miniapp/.next",
+  // поэтому собираем Next.js именно туда, чтобы путь совпадал.
+  distDir: process.env.VERCEL ? 'packages/miniapp/.next' : '.next',
   webpack: (config, { isServer }) => {
     config.experiments = {
       ...config.experiments,
