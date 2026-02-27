@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAccount, useConnect, useDisconnect, useWalletClient } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 import { ethers } from 'ethers';
-import { EncryptedBaseChatABI } from './contract/EncryptedBaseChatABI';
+import { EncryptedBaseChatABI } from '../app/contract/EncryptedBaseChatABI';
 import { useFhenix } from './fhenix-provider';
 
 // Адрес контракта из Remix
